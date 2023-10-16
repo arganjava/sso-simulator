@@ -1,0 +1,16 @@
+extends layout
+
+block content
+    h1= title
+    p Welcome to #{title}
+    button(type="button", id="connectApp") Connect SSO IO
+
+    script(async defer type="text/javascript").
+      var connectApp = document.getElementById("connectApp")
+      var connectApp = document.getElementById("connectApp")
+        .onclick = async (e) => {
+        let res = await fetch("/auth/io-sso")
+        let result = await res.text()
+        console.log("res", result)
+        window.location.href = result
+      }
