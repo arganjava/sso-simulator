@@ -33,7 +33,7 @@ router.get('/verify', async function(req, res, next) {
     console.log("res token", response.data)
 
     const user = await axios.default.get(process.env.IO_SSO_USER_INFO_URL, {
-      headers: { Authorization: `Bearer ${response.data.access_token}` },
+      headers: { Authorization: `Bearer ${response.data.id_token}` },
     })
     console.log("res user", user.data)
     res.render('verify', {title: 'Imaginary Ride', code: req.query.code, tokenData: response.data, user:user.data});
