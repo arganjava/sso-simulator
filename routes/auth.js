@@ -2,6 +2,7 @@ var express = require('express');
 const https = require('https')
 const axios = require("axios");
 var router = express.Router();
+const jose = require('jose')
 
 /* GET users listing. */
 router.get('/io-sso', function(req, res, next) {
@@ -20,7 +21,7 @@ router.get('/verify', async function(req, res, next) {
   console.log("req.query.code ", req.query.code)
   const params = {
     client_id: process.env.IO_SSO_CLIENT_ID,
-    client_secret: process.env.IO_SSO_CLIENT_SECRET,
+  //  client_secret: process.env.IO_SSO_CLIENT_SECRET,
     code: req.query.code,
     redirect_uri: process.env.IO_SSO_REDIRECT_URI,
     response_type: "token",
@@ -39,11 +40,25 @@ router.get('/verify', async function(req, res, next) {
     })
     console.log("res token", response.data)
 
-    const user = await axios.default.get(process.env.IO_SSO_USER_INFO_URL, {
-      headers: { Authorization: `Bearer ${response.data.id_token}` },
+    // const user = await axios.default.get(process.env.IO_SSO_USER_INFO_URL, {
+    //   headers: { Authorization: `Bearer ${response.data.id_token}` },
+    // })
+
+
+    const jwks = await axios.default.get("https://localhost:3002/jwks", {
     })
-    console.log("res user", user.data)
-    res.render('verify', {title: 'Imaginary Ride', code: req.query.code, tokenData: response.data, user:user.data});
+
+    console.log("jwks ", jwks.data)
+    const publicKey = await jose.importJWK(jwks.data)
+
+    const { payload, protectedHeader } = await jose.jwtVerify(response.data.id_token, publicKey)
+
+    console.log(protectedHeader)
+    console.log("DECODE ",payload)
+
+
+    console.log("res user", payload)
+    res.render('verify', {title: 'Imaginary Ride', code: req.query.code, tokenData: response.data, user:payload});
   }catch (e){
     console.log("err res", e)
     res.render('verify', {title: 'Imaginary Ride', code: req.query.code, error: e.message});
