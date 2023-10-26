@@ -1,4 +1,5 @@
 var express = require('express');
+const https = require('https')
 const axios = require("axios");
 var router = express.Router();
 
@@ -9,7 +10,8 @@ router.get('/io-sso', function(req, res, next) {
   let redirectURI = process.env.IO_SSO_REDIRECT_URI
   let ioSsoScope = process.env.IO_SSO_SCOPE
   let responseType = process.env.IO_SSO_REDIRECT_RESPONSE_TYPE
-  let urlSso = `${ssoUrl}?client_id=${clientId}&redirect_uri=${redirectURI}&response_type=${responseType}&scope=${ioSsoScope}`
+  let responseMode = process.env.IO_SSO_REDIRECT_RESPONSE_MODE
+  let urlSso = `${ssoUrl}?client_id=${clientId}&redirect_uri=${redirectURI}&response_type=${responseType}&response_mode=${responseMode}&scope=${ioSsoScope}`
 
   res.send(urlSso);
 });
@@ -22,13 +24,18 @@ router.get('/verify', async function(req, res, next) {
     code: req.query.code,
     redirect_uri: process.env.IO_SSO_REDIRECT_URI,
     response_type: "token",
-    scope: "identity",
+    grant_type: "authorization_code",
+    scope: ["openid","identity"],
   }
+  const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  })
+  axios.defaults.httpsAgent = httpsAgent
   const urlParams = new URLSearchParams()
   Object.keys(params).forEach((key) => urlParams.append(key, params[key]))
   try {
-    const response = await axios.default.post(process.env.IO_SSO_URL, urlParams, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const response = await axios.default.post(process.env.IO_SSO_VERIFY_CODE_URL, params, {
+      headers: { "Content-Type": "application/json" },
     })
     console.log("res token", response.data)
 
@@ -38,7 +45,7 @@ router.get('/verify', async function(req, res, next) {
     console.log("res user", user.data)
     res.render('verify', {title: 'Imaginary Ride', code: req.query.code, tokenData: response.data, user:user.data});
   }catch (e){
-    console.log("err res", e.body)
+    console.log("err res", e)
     res.render('verify', {title: 'Imaginary Ride', code: req.query.code, error: e.message});
   }
 
